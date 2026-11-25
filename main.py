@@ -24,14 +24,20 @@ def main() -> None:
     text = CONFESSION.strip()
     assert "\n" not in text, "entry must be a single line"
     assert 1 <= len(text) <= 200, f"entry must be 1-200 chars, got {len(text)}"
-    try:
-        os.makedirs("/output", exist_ok=True)
-        path = "/output/entry.txt"
-    except OSError:
-        os.makedirs("output", exist_ok=True)
-        path = "output/entry.txt"
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text + "\n")
+    # Try the grader's /output first, then the local ./output fallback.
+    # The original code only caught makedirs failures: if /output exists
+    # but is not writable, makedirs succeeds and the write raised uncaught.
+    # Trying the whole write per base handles that case too.
+    for base in ("/output", "output"):
+        path = os.path.join(base, "entry.txt")
+        try:
+            os.makedirs(base, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(text + "\n")
+            return
+        except OSError:
+            continue
+    raise OSError("could not write entry.txt to /output or ./output")
 
 
 if __name__ == "__main__":
